@@ -10,7 +10,10 @@ function App() {
   const [error, setError] = useState("");
   const [showInfo, setShowInfo] = useState(false);
 
-  // ✅ Weathercode → readable text
+  // task-2 fields
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const codeMap = {
     0: "Clear sky",
     1: "Mainly clear",
@@ -27,125 +30,97 @@ function App() {
     95: "Thunderstorm",
   };
 
-  // ✅ Flexible location input: City / Zip / Landmark / Coordinates
   const getWeather = async () => {
-    if (!city.trim()) {
-      setError(
-        "Please enter a location (City, Zip, Landmark, or Coordinates)."
-      );
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-    setWeather(null);
-    setForecast(null);
-
+    if (!city.trim()) return setError("Please enter a location.");
+    setError(""); setLoading(true); setWeather(null); setForecast(null);
     try {
       let lat, lon, name = city;
-
-      // 1️⃣ Detect coordinate input (e.g., "40.71,-74.00")
       if (city.includes(",")) {
-        const parts = city.split(",").map((x) => x.trim());
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          lat = parts[0];
-          lon = parts[1];
-        } else {
-          throw new Error("Invalid coordinate format. Use: 40.71, -74.00");
-        }
+        const p = city.split(",").map(x=>x.trim());
+        if (p.length===2&&!isNaN(p[0])&&!isNaN(p[1])) { lat=p[0]; lon=p[1]; }
+        else throw new Error("Invalid coordinate format.");
       } else {
-        // 2️⃣ Otherwise, use Nominatim for City/Zip/Landmark
         const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-            city
-          )}&format=json&limit=1`
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`
         );
         const geoData = await geoRes.json();
-        if (geoData.length === 0) throw new Error("Location not found.");
-        lat = geoData[0].lat;
-        lon = geoData[0].lon;
+        if (!geoData.length) throw new Error("Location not found.");
+        lat = geoData[0].lat; lon = geoData[0].lon;
         name = geoData[0].display_name.split(",")[0];
       }
-
-      // 3️⃣ Fetch current weather & forecast
       await fetchWeather(lat, lon, name);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  // ✅ Fetch current weather & forecast (Open-Meteo)
-  const fetchWeather = async (lat, lon, name = "Your Location") => {
+  const fetchWeather = async (lat, lon, name="Location") => {
     try {
-      // Current weather
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
       );
       const data = await res.json();
-
       setWeather({
         name,
         temp: data.current_weather.temperature,
         wind: data.current_weather.windspeed,
         desc: codeMap[data.current_weather.weathercode] || "Unknown",
-        lat,
-        lon,
+        lat, lon,
       });
-
-      // 5-day forecast
       getForecast(lat, lon);
-    } catch (err) {
+    } catch {
       setError("Unable to fetch weather data.");
     }
   };
 
-  // ✅ 5-day forecast
   const getForecast = async (lat, lon) => {
     try {
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&forecast_days=5&timezone=auto`
       );
       const data = await res.json();
-
-      const days = data.daily.time.map((date, i) => ({
-        date,
+      const days = data.daily.time.map((d, i)=>({
+        date: d,
         avgTemp: (
-          (data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) /
-          2
+          (data.daily.temperature_2m_max[i]+data.daily.temperature_2m_min[i])/2
         ).toFixed(1),
         desc: codeMap[data.daily.weathercode[i]] || "Unknown",
       }));
-
       setForecast(days);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (e){ console.error(e); }
   };
 
-  // ✅ Use current location (GPS)
+  const handleSaveWeather = async () => {
+    if (!startDate || !endDate || !weather)
+      return alert("Please fill start/end dates and fetch weather first.");
+    try {
+      const res = await fetch("http://localhost:5000/api/weather", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          location: weather.name,
+          startDate, endDate,
+          temperature: weather.temp,
+          condition: weather.desc,
+          windSpeed: weather.wind,
+          coordinates:{lat:weather.lat, lon:weather.lon}
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) alert("✅ Weather data saved to DB!");
+      else alert(data.message||"Error saving data");
+    } catch(e){ alert("Server error"); console.error(e); }
+  };
+
   const getCurrentLocationWeather = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation not supported by your browser.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setWeather(null);
-    setForecast(null);
-
+    if (!navigator.geolocation)
+      return setError("Geolocation not supported.");
+    setLoading(true); setError(""); setWeather(null); setForecast(null);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        await fetchWeather(latitude, longitude, "Your Location");
+      async pos=>{
+        const {latitude,longitude}=pos.coords;
+        await fetchWeather(latitude,longitude,"Your Location");
         setLoading(false);
       },
-      () => {
-        setError("Unable to get your location.");
-        setLoading(false);
-      }
+      ()=>{ setError("Unable to get your location."); setLoading(false); }
     );
   };
 
@@ -156,12 +131,15 @@ function App() {
       <div className="input-section">
         <input
           type="text"
-          placeholder="Enter city, zip, landmark, or coordinates (e.g., 40.71,-74.00)"
+          placeholder="Enter City, Zip Code, Landmark, or Coordinates (e.g., 40.71,-74.00)"
           value={city}
-          onChange={(e) => setCity(e.target.value)}
+          onChange={e=>setCity(e.target.value)}
         />
+        {/* <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} /> */}
         <button onClick={getWeather}>Get Weather</button>
-        <button onClick={getCurrentLocationWeather}>Use My Location</button>
+        <button onClick={getCurrentLocationWeather}>📍 Use My Location</button>
+        {/* <button className="save-btn" onClick={handleSaveWeather}>💾 Save to Database</button> */}
       </div>
 
       {loading && <p>Loading...</p>}
@@ -174,10 +152,8 @@ function App() {
           <input
             type="checkbox"
             checked={!!forecast}
-            onChange={(e) =>
-              e.target.checked
-                ? getForecast(weather.lat, weather.lon)
-                : setForecast(null)
+            onChange={e =>
+              e.target.checked ? getForecast(weather.lat, weather.lon) : setForecast(null)
             }
           />
           <span>Show 5-Day Forecast</span>
@@ -188,7 +164,7 @@ function App() {
         <div className="forecast">
           <h3>5-Day Forecast</h3>
           <div className="forecast-cards">
-            {forecast.map((d) => (
+            {forecast.map(d=>(
               <div key={d.date} className="forecast-card">
                 <p className="forecast-date">{d.date}</p>
                 <p className="forecast-temp">{d.avgTemp} °C</p>
@@ -199,11 +175,38 @@ function App() {
         </div>
       )}
 
+      {/* --- TASK 2 SECTION --- */}
+      <section className="crud-section">
+        <h2>Weather Data Management</h2>
+        <div className="tabs">
+          <button className="active-tab">CREATE</button>
+          <button>READ</button>
+          <button>UPDATE</button>
+          <button>DELETE</button>
+          <button>INTEGRATIONS</button>
+          <button>EXPORT</button>
+        </div>
+        <div className="crud-create">
+          <h4>Save a range query to DB</h4>
+          <div className="crud-fields">
+            <input
+              type="text"
+              placeholder="Location for DB save"
+              value={city}
+              onChange={e=>setCity(e.target.value)}
+            />
+            <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
+            <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} />
+            <button onClick={handleSaveWeather}>Save Weather Data</button>
+          </div>
+        </div>
+      </section>
+
       <footer className="footer">
         <p>
-          Developed by <strong>Divija Morishetty</strong>
+          Developed by <strong>Divija Morishetty</strong> · PM Accelerator
         </p>
-        <button onClick={() => setShowInfo(true)}>ℹ️ Info</button>
+        <button onClick={()=>setShowInfo(true)}>ℹ️ Info</button>
       </footer>
 
       {showInfo && (
@@ -211,26 +214,21 @@ function App() {
           <div className="info-content">
             <h2>About PM Accelerator</h2>
             <p>
-              PM Accelerator is a professional development platform that helps
-              aspiring and early-career professionals build real-world product-management
-              skills through mentorship, hands-on projects, and community collaboration.
+              PM Accelerator helps professionals gain real-world product-management
+              experience through mentorship and hands-on projects.
             </p>
-            <p>
-              Learn more on their{" "}
-              <a
-                href="https://www.linkedin.com/company/product-manager-accelerator/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LinkedIn page
-              </a>.
-            </p>
-            <button onClick={() => setShowInfo(false)}>Close</button>
+            <a
+              href="https://www.linkedin.com/company/product-manager-accelerator/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Visit LinkedIn ↗
+            </a>
+            <button onClick={()=>setShowInfo(false)}>Close</button>
           </div>
         </div>
       )}
     </div>
   );
 }
-
 export default App;

@@ -1,225 +1,139 @@
+body {
+  background: #dbeeff;
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
 .app-container {
   text-align: center;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: linear-gradient(to bottom, #87ceeb, #f0f8ff);
-  min-height: 100vh;
-  padding: 30px;
+  padding: 20px;
 }
 
 h1 {
+  color: #1e4fa3;
   margin-bottom: 20px;
-  color: #004d80;
 }
 
 .input-section {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 20px;
 }
-input::placeholder {
-  color: #666;
+
+input, button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
   font-size: 14px;
 }
 
-input {
-  padding: 10px;
-  width: 200px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  margin-right: 10px;
-}
-
 button {
-  padding: 10px 15px;
-  background-color: #0288d1;
+  background-color: #2b6ff3;
   color: white;
   border: none;
-  border-radius: 5px;
   cursor: pointer;
-  margin: 5px;
+  transition: 0.2s;
 }
 
 button:hover {
-  background-color: #0277bd;
+  opacity: 0.9;
+}
+
+.save-btn {
+  background-color: #3da15f;
 }
 
 .error {
   color: red;
-  font-weight: bold;
 }
 
-/* ---------- Forecast Toggle ---------- */
-/* 🔧 Force checkbox and label on same line with no space */
-.forecast-toggle {
-  display: flex !important;
-  justify-content: center;
-  align-items: center;
-  gap: 4px !important;          /* tightly controls space */
-  margin-top: 6px;
-  margin-bottom: 0;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
-}
-.forecast-toggle span {
-  font-size: 14px;         /* smaller, cleaner text */
-  color: #555;             /* soft gray tone */
-  transition: color 0.3s ease;
-}
-
-.forecast-toggle span:hover {
-  color: #0288d1;          /* matches theme when hovered */
-}
-
-.forecast-toggle input[type="checkbox"] {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-  accent-color: #0288d1;
-}
-
-.forecast-toggle label {
-  margin: 0 !important;
-  padding: 0 !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-/* ---------- Forecast Section ---------- */
 .forecast {
-  margin: 10px auto 70px;   /* tightened spacing around forecast block */
-  text-align: center;
-}
-
-.forecast h3 {
-  margin-top: 5px;
-  margin-bottom: 10px;
-  font-size: 22px;
-  font-weight: 600;
-  color: #004d80;
+  margin-top: 20px;
 }
 
 .forecast-cards {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
   gap: 15px;
+  flex-wrap: wrap;
 }
 
 .forecast-card {
-  background: linear-gradient(180deg, #ffffff 0%, #e0f7fa 100%);
-  border-radius: 12px;
-  width: 140px;
-  padding: 15px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.3s ease;
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  width: 120px;
 }
 
-.forecast-card:hover {
-  transform: scale(1.04);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  background: linear-gradient(180deg, #f0fcff 0%, #d6f4f9 100%);
+.crud-section {
+  background: #f9fcff;
+  margin: 30px auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 800px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
 }
-.forecast-date {
-  font-weight: bold;
-  margin-bottom: 5px;
+
+.crud-section h2 {
+  margin-bottom: 10px;
+  color: #0d3c91;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tabs button {
+  background: transparent;
+  border-bottom: 2px solid transparent;
   color: #333;
 }
 
-.forecast-temp {
-  font-size: 18px;
-  font-weight: bold;
-  color: #0277bd;
-  margin: 5px 0;
+.tabs .active-tab {
+  border-bottom: 2px solid #2b6ff3;
+  color: #2b6ff3;
+  font-weight: 600;
 }
 
-.forecast-desc {
-  text-transform: capitalize;
-  color: #555;
-  font-size: 14px;
+.crud-fields {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* ---------- Footer ---------- */
 .footer {
-  position: relative;
   margin-top: 40px;
-  padding-top: 15px;
-  text-align: center;
-  border-top: 1px solid #ccc;
-  background: transparent;
-}
-
-.footer p {
-  display: inline-block;
-  margin-right: 10px;
   font-size: 14px;
   color: #444;
 }
 
 .footer button {
-  padding: 6px 10px;
-  background-color: #0288d1;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+  margin-left: 10px;
+  background-color: #2b6ff3;
 }
 
-.footer button:hover {
-  background-color: #0277bd;
-}
-
-/* ---------- Info Modal ---------- */
 .info-modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.3);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 }
 
 .info-content {
-  background: white;
-  padding: 20px;
-  width: 400px;
+  background: #fff;
+  padding: 25px;
   border-radius: 10px;
-  text-align: left;
-}
-
-.info-content a {
-  color: #0288d1;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.info-content button {
-  margin-top: 15px;
-  padding: 8px 15px;
-  background-color: #0288d1;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.info-content button:hover {
-  background-color: #0277bd;
-}
-
-/* ---------- Responsive Enhancements ---------- */
-@media (max-width: 768px) {
-  .forecast-cards {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    scrollbar-width: thin;
-  }
-
-  .forecast-card {
-    min-width: 130px;
-    flex-shrink: 0;
-  }
+  width: 300px;
 }
