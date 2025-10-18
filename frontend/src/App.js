@@ -15,6 +15,7 @@ function App() {
   // task-2 fields
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [savedWeather, setSavedWeather] = useState(null);
 
   const codeMap = {
     0: "Clear sky",
@@ -130,84 +131,44 @@ function App() {
     }
   };
 
-  // const handleSaveWeather = async () => {
-  //   if (!startDate || !endDate || !city2)
-  //     return alert("Please fill start/end dates and fetch weather first.");
-  //   try {
-  //     console.log(city2);
-  //     const res = await fetch("http://localhost:5001/api/weather", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         location: city2,
-  //         startDate,
-  //         endDate
-  //       }),
-  //     });
-  //     const data = await res.json();
-  //     if (res.ok) alert("✅ Weather data saved to DB!");
-  //     else alert(data.message || "Error saving data");
-  //   } catch (e) {
-  //     alert("Server error");
-  //     console.error(e);
-  //   }
-  // };
+  const handleSaveWeather = async () => {
+    if (!startDate || !endDate || !city2)
+      return alert("Please fill start/end dates and location.");
 
-//   const handleSaveWeather = async () => {
-//   if (!startDate || !endDate || !city2)
-//     return alert("Please fill start/end dates and location.");
+    setLoading(true);
+    setError("");
+    setSavedWeather(null);
 
-//   setLoading(true);
-//   setError("");
+    try {
+      const data = {
+        location: city2,
+        startDate,
+        endDate,
+      };
 
-//   try {
-//     const data = {
-//       location: city2,       // Use city2 here
-//       startDate: startDate,  // Ensure this is set in state
-//       endDate: endDate       // Ensure this is set in state
-//     };
-//     const res = await axios.post("http://localhost:5001/api/weather", data);
+      const response = await axios.post('http://localhost:5001/api/weather', data, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
-//     setLoading(false);
+      setLoading(false);
 
-//     if (res.status === 201) {
-//       alert("✅ Weather data saved to DB!");
-//       // Optionally, handle res.data here (e.g., show saved data)
-//     } else {
-//       setError(res.data.message || "Error saving data");
-//     }
-//   } catch (e) {
-//     setLoading(false);
-//     setError(e.response?.data?.message || "Server error");
-//     console.error(e);
-//   }
-// };
-
-const handleSaveWeather = async () => {
-  try {
-    const data = {
-      location: city2,       // e.g., "Seattle"
-      startDate: startDate,  // e.g., "2025-10-01"
-      endDate: endDate       // e.g., "2025-10-05"
-    };
-
-    console.log("📦 Payload:", data);
-    
-    const response = await axios.post('http://localhost:5001/api/weather', data, {
-      headers: {
-        'Content-Type': 'application/json',
+      if (response.status === 201 && response.data && response.data.data) {
+        setSavedWeather(response.data.data); // <-- Save the returned list
+        alert("Weather data saved successfully");
+      } else {
+        setError(response.data.message || "Error saving data");
       }
-    });
+    } catch (error) {
+      setLoading(false);
+      setError(error.response?.data?.message || "Failed to save weather data");
+      setSavedWeather(null);
+      console.error("❌ Error in saving weather:", error.response?.data || error.message);
+    }
+  };
 
-    console.log("✅ Response:", response.data);
-    alert("Weather data saved successfully");
-  } catch (error) {
-    console.error("❌ Error in saving weather:", error.response?.data || error.message);
-    alert("Failed to save weather data");
-  }
-};
-
-const getCurrentLocationWeather = () => {
+  const getCurrentLocationWeather = () => {
     if (!navigator.geolocation) return setError("Geolocation not supported.");
     setLoading(true);
     setError("");
@@ -309,7 +270,7 @@ const getCurrentLocationWeather = () => {
           <button>EXPORT</button>
         </div>
         <div className="crud-create">
-          <h4>Save a range query to DB</h4>
+          <h4>Save query details to DB</h4>
           <div className="crud-fields">
             <input
               type="text"
@@ -329,6 +290,19 @@ const getCurrentLocationWeather = () => {
             />
             <button onClick={handleSaveWeather}>Save Weather Data</button>
           </div>
+          {/* Display saved weather records */}
+          {savedWeather && (
+            <div className="saved-weather-list">
+              <h4>Saved Daily Temperatures</h4>
+              <ul>
+                {savedWeather.map((item) => (
+                  <li key={item.day}>
+                    {item.day}: {item.temperature} °C
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 
