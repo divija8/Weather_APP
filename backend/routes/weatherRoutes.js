@@ -11,20 +11,16 @@ router.post("/", async (req, res) => {
     const {
       location,
       startDate,
-      endDate,
-      temperature,
-      humidity,
-      condition,
-      windSpeed,
-      coordinates,
+      endDate
     } = req.body;
-
+    console.log(location, startDate, endDate);
     // ✅ Validate required fields
-    if (!location || !startDate || !endDate || !coordinates) {
+    if (!location || !startDate || !endDate) {
       return res
         .status(400)
-        .json({ message: "Location, date range, and coordinates are required." });
+        .json({ message: "location, startDate, endDate are required." });
     }
+    console.log(location, startDate, endDate, "2");
 
     // ✅ Validate date range
     if (new Date(startDate) > new Date(endDate)) {
@@ -32,41 +28,54 @@ router.post("/", async (req, res) => {
         .status(400)
         .json({ message: "Start date cannot be after end date." });
     }
-
-    // ✅ Validate coordinate ranges
-    const { lat, lon } = coordinates;
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      return res.status(400).json({
-        message: "Latitude must be between -90 and 90, and longitude between -180 and 180.",
-      });
+    console.log(location, startDate, endDate, "3");
+    const geoRes = await fetch(
+  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&addressdetails=1`,
+  {
+    headers: {
+      "User-Agent": "weather-app/1.0 (swethasiri83@gmail.com)"
     }
+  }
+);
+    console.log(location, startDate, endDate, "4", geoRes);
 
-    // ✅ Validate coordinates via Open-Meteo
-    const verifyRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
-    );
-    const verifyData = await verifyRes.json();
-
-    if (!verifyRes.ok || !verifyData.current_weather) {
-      return res
-        .status(400)
-        .json({ message: "Invalid coordinates: no weather data found." });
+    const geoData = await geoRes.json();
+    if (!geoData.length) {
+      return res.status(400).json({ message: "Location not found." });
     }
+    console.log(location, startDate, endDate, "5");
+    const lat = geoData[0].lat;
+    const lon = geoData[0].lon;
+    console.log(lat, lon);
+    // ✅ Fetch daily mean temperature from Open-Meteo archive API
+    const apiUrl = `https://archive-api.open-meteo.com/v1/era5?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_mean`;
+    const apiRes = await fetch(apiUrl);
+    const apiData = await apiRes.json();
 
-    // ✅ Create record
-    const newSearch = new WeatherSearch({
+    if (!apiRes.ok || !apiData.daily || !apiData.daily.time || !apiData.daily.temperature_2m_mean) {
+      return res.status(400).json({ message: "Could not fetch weather data for given range." });
+    }
+    // console.log(apiRes)
+
+    // Prepare records for DB and response
+    const records = apiData.daily.time.map((day, idx) => ({
       location,
-      startDate,
-      endDate,
-      temperature,
-      humidity,
-      condition,
-      windSpeed,
-      coordinates,
-    });
+      date: day,
+      temperature: apiData.daily.temperature_2m_mean[idx],
+      coordinates: { lat, lon },
+    }));
+    console.log(records);
+    // Store all records in DB
+    const savedRecords = await WeatherSearch.insertMany(records);
+    console.log(location, startDate, endDate, "7");
 
-    const saved = await newSearch.save();
-    res.status(201).json(saved);
+    // Prepare response: list of { day, temperature }
+    const result = records.map(r => ({
+      day: r.date,
+      temperature: r.temperature,
+    }));
+    console.log(result)
+    res.status(201).json({ location, coordinates: { lat, lon }, data: result });
   } catch (error) {
     res
       .status(500)
@@ -78,6 +87,7 @@ router.post("/", async (req, res) => {
    GET /api/weather  →  READ all weather records
 ------------------------------------------------------------ */
 router.get("/", async (_req, res) => {
+  console.log("enterered");
   try {
     const searches = await WeatherSearch.find().sort({ searchedAt: -1 });
     res.status(200).json(searches);

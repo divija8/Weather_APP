@@ -7,21 +7,17 @@ const WeatherSearchSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    startDate: {
-      type: Date,
+    date: {
+      type: String, // ISO date string, e.g., '2025-10-12'
       required: true,
     },
-    endDate: {
-      type: Date,
+    temperature: {
+      type: Number,
       required: true,
     },
-    temperature: Number,
-    humidity: Number,
-    condition: String,
-    windSpeed: Number,
     coordinates: {
-      lat: { type: Number, required: true },
-      lon: { type: Number, required: true },
+      lat: { type: String, required: true },
+      lon: { type: String, required: true },
     },
     searchedAt: {
       type: Date,

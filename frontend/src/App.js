@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import "./App.css";
 import WeatherCard from "./components/WeatherCard";
 
@@ -129,33 +130,84 @@ function App() {
     }
   };
 
-  const handleSaveWeather = async () => {
-    if (!startDate || !endDate || !weather)
-      return alert("Please fill start/end dates and fetch weather first.");
-    try {
-      const res = await fetch("http://localhost:5000/api/weather", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          location: weather.name,
-          startDate,
-          endDate,
-          temperature: weather.temp,
-          condition: weather.desc,
-          windSpeed: weather.wind,
-          coordinates: { lat: weather.lat, lon: weather.lon },
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) alert("✅ Weather data saved to DB!");
-      else alert(data.message || "Error saving data");
-    } catch (e) {
-      alert("Server error");
-      console.error(e);
-    }
-  };
+  // const handleSaveWeather = async () => {
+  //   if (!startDate || !endDate || !city2)
+  //     return alert("Please fill start/end dates and fetch weather first.");
+  //   try {
+  //     console.log(city2);
+  //     const res = await fetch("http://localhost:5001/api/weather", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         location: city2,
+  //         startDate,
+  //         endDate
+  //       }),
+  //     });
+  //     const data = await res.json();
+  //     if (res.ok) alert("✅ Weather data saved to DB!");
+  //     else alert(data.message || "Error saving data");
+  //   } catch (e) {
+  //     alert("Server error");
+  //     console.error(e);
+  //   }
+  // };
 
-  const getCurrentLocationWeather = () => {
+//   const handleSaveWeather = async () => {
+//   if (!startDate || !endDate || !city2)
+//     return alert("Please fill start/end dates and location.");
+
+//   setLoading(true);
+//   setError("");
+
+//   try {
+//     const data = {
+//       location: city2,       // Use city2 here
+//       startDate: startDate,  // Ensure this is set in state
+//       endDate: endDate       // Ensure this is set in state
+//     };
+//     const res = await axios.post("http://localhost:5001/api/weather", data);
+
+//     setLoading(false);
+
+//     if (res.status === 201) {
+//       alert("✅ Weather data saved to DB!");
+//       // Optionally, handle res.data here (e.g., show saved data)
+//     } else {
+//       setError(res.data.message || "Error saving data");
+//     }
+//   } catch (e) {
+//     setLoading(false);
+//     setError(e.response?.data?.message || "Server error");
+//     console.error(e);
+//   }
+// };
+
+const handleSaveWeather = async () => {
+  try {
+    const data = {
+      location: city2,       // e.g., "Seattle"
+      startDate: startDate,  // e.g., "2025-10-01"
+      endDate: endDate       // e.g., "2025-10-05"
+    };
+
+    console.log("📦 Payload:", data);
+    
+    const response = await axios.post('http://localhost:5001/api/weather', data, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    console.log("✅ Response:", response.data);
+    alert("Weather data saved successfully");
+  } catch (error) {
+    console.error("❌ Error in saving weather:", error.response?.data || error.message);
+    alert("Failed to save weather data");
+  }
+};
+
+const getCurrentLocationWeather = () => {
     if (!navigator.geolocation) return setError("Geolocation not supported.");
     setLoading(true);
     setError("");
