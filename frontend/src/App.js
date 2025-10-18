@@ -4,6 +4,7 @@ import WeatherCard from "./components/WeatherCard";
 
 function App() {
   const [city, setCity] = useState("");
+  const [city2, setCity2] = useState("");
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,27 +33,62 @@ function App() {
 
   const getWeather = async () => {
     if (!city.trim()) return setError("Please enter a location.");
-    setError(""); setLoading(true); setWeather(null); setForecast(null);
+
+    setError("");
+    setLoading(true);
+    setWeather(null);
+    setForecast(null);
+
     try {
-      let lat, lon, name = city;
-      if (city.includes(",")) {
-        const p = city.split(",").map(x=>x.trim());
-        if (p.length===2&&!isNaN(p[0])&&!isNaN(p[1])) { lat=p[0]; lon=p[1]; }
-        else throw new Error("Invalid coordinate format.");
-      } else {
+      let lat, lon, name;
+
+      const input = city.trim();
+      const parts = input.split(",").map((p) => p.trim());
+
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        // Coordinates input: "lat,lon"
+        lat = parts[0];
+        lon = parts[1];
+
+        // Reverse geocode to get name
         const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+        );
+        const geoData = await geoRes.json();
+        name =
+          geoData.address.city ||
+          geoData.address.town ||
+          geoData.address.village ||
+          geoData.display_name ||
+          "Your Coordinates";
+        name = name + "\n(" + lat + ", " + lon + ")";
+      } else {
+        // Free text (zip, city, landmark)
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&addressdetails=1`
         );
         const geoData = await geoRes.json();
         if (!geoData.length) throw new Error("Location not found.");
-        lat = geoData[0].lat; lon = geoData[0].lon;
-        name = geoData[0].display_name.split(",")[0];
+        lat = geoData[0].lat;
+        lon = geoData[0].lon;
+        const address = geoData[0].address || {};
+        name =
+          address.city ||
+          address.town ||
+          address.village ||
+          address.hamlet ||
+          geoData[0].display_name.split(",")[0];
       }
+
       await fetchWeather(lat, lon, name);
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fetchWeather = async (lat, lon, name="Location") => {
+  const fetchWeather = async (lat, lon, name = "Location") => {
     try {
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
@@ -63,7 +99,8 @@ function App() {
         temp: data.current_weather.temperature,
         wind: data.current_weather.windspeed,
         desc: codeMap[data.current_weather.weathercode] || "Unknown",
-        lat, lon,
+        lat,
+        lon,
       });
       getForecast(lat, lon);
     } catch {
@@ -77,15 +114,19 @@ function App() {
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&forecast_days=5&timezone=auto`
       );
       const data = await res.json();
-      const days = data.daily.time.map((d, i)=>({
+      const days = data.daily.time.map((d, i) => ({
         date: d,
         avgTemp: (
-          (data.daily.temperature_2m_max[i]+data.daily.temperature_2m_min[i])/2
+          (data.daily.temperature_2m_max[i] +
+            data.daily.temperature_2m_min[i]) /
+          2
         ).toFixed(1),
         desc: codeMap[data.daily.weathercode[i]] || "Unknown",
       }));
       setForecast(days);
-    } catch (e){ console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleSaveWeather = async () => {
@@ -93,34 +134,60 @@ function App() {
       return alert("Please fill start/end dates and fetch weather first.");
     try {
       const res = await fetch("http://localhost:5000/api/weather", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           location: weather.name,
-          startDate, endDate,
+          startDate,
+          endDate,
           temperature: weather.temp,
           condition: weather.desc,
           windSpeed: weather.wind,
-          coordinates:{lat:weather.lat, lon:weather.lon}
+          coordinates: { lat: weather.lat, lon: weather.lon },
         }),
       });
       const data = await res.json();
       if (res.ok) alert("✅ Weather data saved to DB!");
-      else alert(data.message||"Error saving data");
-    } catch(e){ alert("Server error"); console.error(e); }
+      else alert(data.message || "Error saving data");
+    } catch (e) {
+      alert("Server error");
+      console.error(e);
+    }
   };
 
   const getCurrentLocationWeather = () => {
-    if (!navigator.geolocation)
-      return setError("Geolocation not supported.");
-    setLoading(true); setError(""); setWeather(null); setForecast(null);
+    if (!navigator.geolocation) return setError("Geolocation not supported.");
+    setLoading(true);
+    setError("");
+    setWeather(null);
+    setForecast(null);
     navigator.geolocation.getCurrentPosition(
-      async pos=>{
-        const {latitude,longitude}=pos.coords;
-        await fetchWeather(latitude,longitude,"Your Location");
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // await fetchWeather(latitude,longitude,"Your Location");
+        // Reverse geocoding using OpenStreetMap's Nominatim
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+          );
+          const geoData = await geoRes.json();
+          const locationName =
+            geoData.address.city ||
+            geoData.address.town ||
+            geoData.address.village ||
+            "Your Location";
+
+          await fetchWeather(latitude, longitude, locationName);
+        } catch (e) {
+          await fetchWeather(latitude, longitude, "Your Location");
+        }
+
         setLoading(false);
       },
-      ()=>{ setError("Unable to get your location."); setLoading(false); }
+      () => {
+        setError("Unable to get your location.");
+        setLoading(false);
+      }
     );
   };
 
@@ -131,9 +198,10 @@ function App() {
       <div className="input-section">
         <input
           type="text"
-          placeholder="Enter City, Zip Code, Landmark, or Coordinates (e.g., 40.71,-74.00)"
+          placeholder="Enter city, ZIP, landmark, or GPS (lat,lon)"
           value={city}
-          onChange={e=>setCity(e.target.value)}
+          onChange={(e) => setCity(e.target.value)}
+          className="location-input"
         />
         {/* <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
         <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} /> */}
@@ -152,8 +220,10 @@ function App() {
           <input
             type="checkbox"
             checked={!!forecast}
-            onChange={e =>
-              e.target.checked ? getForecast(weather.lat, weather.lon) : setForecast(null)
+            onChange={(e) =>
+              e.target.checked
+                ? getForecast(weather.lat, weather.lon)
+                : setForecast(null)
             }
           />
           <span>Show 5-Day Forecast</span>
@@ -164,7 +234,7 @@ function App() {
         <div className="forecast">
           <h3>5-Day Forecast</h3>
           <div className="forecast-cards">
-            {forecast.map(d=>(
+            {forecast.map((d) => (
               <div key={d.date} className="forecast-card">
                 <p className="forecast-date">{d.date}</p>
                 <p className="forecast-temp">{d.avgTemp} °C</p>
@@ -192,11 +262,19 @@ function App() {
             <input
               type="text"
               placeholder="Location for DB save"
-              value={city}
-              onChange={e=>setCity(e.target.value)}
+              value={city2}
+              onChange={(e) => setCity2(e.target.value)}
             />
-            <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
-            <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
             <button onClick={handleSaveWeather}>Save Weather Data</button>
           </div>
         </div>
@@ -206,7 +284,7 @@ function App() {
         <p>
           Developed by <strong>Divija Morishetty</strong> · PM Accelerator
         </p>
-        <button onClick={()=>setShowInfo(true)}>ℹ️ Info</button>
+        <button onClick={() => setShowInfo(true)}>ℹ️ Info</button>
       </footer>
 
       {showInfo && (
@@ -214,8 +292,9 @@ function App() {
           <div className="info-content">
             <h2>About PM Accelerator</h2>
             <p>
-              PM Accelerator helps professionals gain real-world product-management
-              experience through mentorship and hands-on projects.
+              PM Accelerator helps professionals gain real-world
+              product-management experience through mentorship and hands-on
+              projects.
             </p>
             <a
               href="https://www.linkedin.com/company/product-manager-accelerator/"
@@ -224,7 +303,7 @@ function App() {
             >
               Visit LinkedIn ↗
             </a>
-            <button onClick={()=>setShowInfo(false)}>Close</button>
+            <button onClick={() => setShowInfo(false)}>Close</button>
           </div>
         </div>
       )}

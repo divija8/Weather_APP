@@ -137,3 +137,13 @@ button:hover {
   border-radius: 10px;
   width: 300px;
 }
+
+.location-input {
+  flex: 1 1 400px;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
