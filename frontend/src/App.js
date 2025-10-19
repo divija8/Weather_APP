@@ -4,12 +4,19 @@ import axios from "axios";
 import "jspdf-autotable";
 import "./App.css";
 import WeatherCard from "./components/WeatherCard";
+import CreateTab from "./components/tabs/CreateTab";
+import ReadTab from './components/tabs/ReadTab';
+import UpdateTab from './components/tabs/UpdateTab'
+import DeleteTab from './components/tabs/DeleteTab'
+import IntegrationTab from './components/tabs/IntegrationTab';
+import ExportTab from './components/tabs/ExportTab';
 
 function App() {
   const [city, setCity] = useState("");
   const [city2, setCity2] = useState("");
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
+  const [showForecast, setShowForecast] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showInfo, setShowInfo] = useState(false);
@@ -20,9 +27,7 @@ function App() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [savedWeather, setSavedWeather] = useState(null);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editTemp, setEditTemp] = useState("");
-
+ 
   const codeMap = {
     0: "Clear sky",
     1: "Mainly clear",
@@ -46,6 +51,7 @@ function App() {
     setLoading(true);
     setWeather(null);
     setForecast(null);
+    setShowForecast(false);
 
     try {
       let lat, lon, name;
@@ -110,7 +116,6 @@ function App() {
         lat,
         lon,
       });
-      getForecast(lat, lon);
     } catch {
       setError("Unable to fetch weather data.");
     }
@@ -137,9 +142,23 @@ function App() {
     }
   };
 
+  const handleForecastToggle = (checked) => {
+    setShowForecast(checked);
+    if (checked && weather) {
+      getForecast(weather.lat, weather.lon);
+    } else {
+      setForecast(null);
+    }
+  };
+
   const handleSaveWeather = async () => {
-    if (!startDate || !endDate || !city2)
-      return alert("Please fill start/end dates and location.");
+    if (!city2 || !startDate || !endDate) {
+        return alert("Please fill all fields: Location, Start Date, and End Date.");
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      return alert("Start Date cannot be later than End Date.");
+    }
 
     setLoading(true);
     setError("");
@@ -180,6 +199,7 @@ function App() {
     setError("");
     setWeather(null);
     setForecast(null);
+    setShowForecast(false);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -210,35 +230,6 @@ function App() {
     );
   };
 
-  const [videoId, setVideoId] = useState(null);
-  const [mapURL, setMapURL] = useState("");
-
-const fetchYouTubeVideo = async (cityName) => {
-  try {
-    const API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY || "YOUR_API_KEY";
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(cityName)} travel&key=${API_KEY}&type=video&maxResults=1`
-    );
-    const data = await response.json();
-    if (data.items && data.items.length > 0) {
-      setVideoId(data.items[0].id.videoId);
-    } else {
-      setVideoId(null);
-    }
-  } catch (error) {
-    console.error("Failed to fetch YouTube video", error);
-    setVideoId(null);
-  }
-};
-
-useEffect(() => {
-  if (tab === "integrations" && city2.trim() !== "") {
-    fetchYouTubeVideo(city2);
-    setMapURL(`https://www.google.com/maps?q=${encodeURIComponent(city2)}&output=embed`);
-  }
-}, [tab, city2]);
-
-
 useEffect(() => {
   const fetchDataIfMissing = async () => {
     if (tab === "export" && (!weatherRecords || weatherRecords.length === 0)) {
@@ -256,7 +247,7 @@ useEffect(() => {
   fetchDataIfMissing();
 }, [tab, weatherRecords]);
 
-  const fetchWeatherData = async () => {
+const fetchWeatherData = async () => {
   try {
     const res = await fetch("http://localhost:5001/api/weather");
     const data = await res.json();
@@ -270,125 +261,17 @@ useEffect(() => {
     console.error(err);
   }
 };
-
-const startEdit = (record) => {
-  setEditingRecord(record._id);
-  setEditTemp(record.temperature);
-};
-const saveEdit = async (recordId) => {
+const fetchWeatherRecords = async () => {
   try {
-    const response = await fetch(`http://localhost:5001/api/weather/${recordId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ temperature: parseFloat(editTemp) }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      alert(errorData.message || "Failed to update temperature");
-      return;
-    }
-
-    const updatedRecord = await response.json();
-
-    // Update record in state
-    setWeatherRecords((prevRecords) =>
-      prevRecords.map((r) => (r._id === recordId ? updatedRecord : r))
-    );
-
-    setEditingRecord(null);
-    setEditTemp("");
-  } catch (err) {
-    console.error("Update error:", err);
-    alert("An error occurred while updating the record.");
-  }
-};
-const handleDelete = async (id) => {
-  const confirm = window.confirm("Are you sure you want to delete this record?");
-  if (!confirm) return;
-
-  try {
-    const res = await fetch(`http://localhost:5001/api/weather/${id}`, {
-      method: "DELETE"
-    });
-
-    if (res.ok) {
-      setWeatherRecords(prev => prev.filter(record => record._id !== id));
-      alert("Record deleted successfully");
-    } else {
-      const data = await res.json();
-      alert("Error deleting record: " + data.message);
-    }
-  } catch (err) {
-    console.error("❌ Delete error:", err);
-    alert("Network error while deleting record.");
+    const response = await fetch("/api/weather");
+    const data = await response.json();
+    setWeatherRecords(data);
+  } catch (error) {
+    console.error("Failed to fetch weather records:", error);
   }
 };
 
-// Export
-
-const downloadFile = (url, filename) => {
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-const handleExportJSON = () => {
-  const jsonData = JSON.stringify(weatherRecords, null, 2);
-  const blob = new Blob([jsonData], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  downloadFile(url, "weather_export.json");
-};
-
-const handleExportCSV = () => {
-  if (!weatherRecords.length) return;
-  const headers = Object.keys(weatherRecords[0]);
-  const rows = weatherRecords.map(obj => headers.map(field => JSON.stringify(obj[field] ?? "")).join(","));
-  const csvContent = [headers.join(","), ...rows].join("\n");
-
-  const blob = new Blob([csvContent], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  downloadFile(url, "weather_export.csv");
-};
-
-// const handleExportPDF = () => {
-//   const doc = new jsPDF();
-//   const headers = Object.keys(weatherRecords[0]);
-//   const rows = weatherRecords.map(obj => headers.map(h => obj[h] ?? ""));
-
-//   doc.autoTable({
-//     head: [headers],
-//     body: rows,
-//   });
-
-//   doc.save("weather_export.pdf");
-// };
-
-// const handleExportMarkdown = () => {
-//   if (!weatherRecords.length) return;
-//   const headers = Object.keys(weatherRecords[0]);
-//   const markdownRows = weatherRecords.map(obj =>
-//     "| " + headers.map(field => obj[field] ?? "").join(" | ") + " |"
-//   );
-
-//   const headerRow = "| " + headers.join(" | ") + " |";
-//   const dividerRow = "| " + headers.map(() => "---").join(" | ") + " |";
-//   const markdown = [headerRow, dividerRow, ...markdownRows].join("\n");
-
-//   const blob = new Blob([markdown], { type: "text/markdown" });
-//   const url = URL.createObjectURL(blob);
-//   downloadFile(url, "weather_export.md");
-// };
-
-
-
-
-  return (
+return (
     <div className="app-container">
       <h1>🌦 Weather App</h1>
 
@@ -416,17 +299,13 @@ const handleExportCSV = () => {
         <div className="forecast-toggle">
           <input
             type="checkbox"
-            checked={!!forecast}
-            onChange={(e) =>
-              e.target.checked
-                ? getForecast(weather.lat, weather.lon)
-                : setForecast(null)
-            }
+            checked={showForecast}
+            onChange={(e) => handleForecastToggle(e.target.checked)}
           />
           <span>Show 5-Day Forecast</span>
         </div>
       )}
-      {forecast && (
+      {showForecast && forecast && (
         <div className="forecast">
           <h3>5-Day Forecast</h3>
           <div className="forecast-cards">
@@ -453,269 +332,46 @@ const handleExportCSV = () => {
     <button onClick={() => setTab("export")} className={tab === "export" ? "active-tab" : ""}>EXPORT</button>
   </div>
 
-  {/* CREATE tab */}
   {tab === "create" && (
-    <div className="crud-create">
-      <h4>Save query details to DB</h4>
-      <div className="crud-fields">
-        <input
-          type="text"
-          placeholder="Location for DB save"
-          value={city2}
-          onChange={(e) => setCity2(e.target.value)}
-        />
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-        <button onClick={handleSaveWeather}>Save Weather Data</button>
-      </div>
-      {/* Display saved weather records */}
-      {savedWeather && (
-        <div className="saved-weather-list">
-          <h4>Saved Daily Temperatures</h4>
-          <ul>
-            {savedWeather.map((item) => (
-              <li key={item.day}>
-                {item.day}: {item.temperature} °C
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  )}
+  <CreateTab
+    tab={tab}
+    city2={city2}
+    setCity2={setCity2}
+    startDate={startDate}
+    setStartDate={setStartDate}
+    endDate={endDate}
+    setEndDate={setEndDate}
+    handleSaveWeather={handleSaveWeather}
+    savedWeather={savedWeather}
+  />
+)}
 
-  {/* READ tab */}
-  {tab === "read" && (
-    <div className="crud-read">
-      <h2>Saved Weather Records</h2>
-      {/* {weatherRecords.length === 0 ? (
-        <p>No records found.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Location</th>
-              <th>Date</th>
-              <th>Temperature (°C)</th>
-              <th>Latitude</th>
-              <th>Longitude</th>
-            </tr>
-          </thead>
-          <tbody>
-            {weatherRecords.map((record) => (
-              <tr key={record._id}>
-                <td>{record.location}</td>
-                <td>{record.date}</td>
-                <td>{record.temperature}</td>
-                <td>{record.coordinates?.lat}</td>
-                <td>{record.coordinates?.lon}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )} */}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th>Location</th>
-          <th>Date</th>
-          <th>Temperature (°C)</th>
-          <th>Latitude</th>
-          <th>Longitude</th>
-          {/* <th>Action</th> */}
-        </tr>
-      </thead>
-      <tbody>
-        {weatherRecords.map((record) => (
-          <tr key={record._id}>
-            <td>{record.location}</td>
-            <td>{record.date}</td>
-            <td>
-              {
-                record.temperature
-              }
-            </td>
-            <td>{record.coordinates?.lat}</td>
-            <td>{record.coordinates?.lon}</td>
-            {/* <td>
-              {editingRecord === record._id ? (
-                <>
-                  <button onClick={() => saveEdit(record._id)}>Save</button>
-                  <button onClick={() => setEditingRecord(null)}>
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => startEdit(record)}>Edit</button>
-              )}
-            </td> */}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    </div>
-  )}
- {/* UPDATE tab */}
-  {tab === "update" && (
-  <>
-    <h2>Update Saved Weather Record</h2>
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th>Location</th>
-          <th>Date</th>
-          <th>Temperature (°C)</th>
-          <th>Latitude</th>
-          <th>Longitude</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {weatherRecords.map((record) => (
-          <tr key={record._id}>
-            <td>{record.location}</td>
-            <td>{record.date}</td>
-            <td>
-              {editingRecord === record._id ? (
-                <input
-                  type="number"
-                  value={editTemp}
-                  onChange={(e) => setEditTemp(e.target.value)}
-                  style={{ width: "80px" }}
-                />
-              ) : (
-                record.temperature
-              )}
-            </td>
-            <td>{record.coordinates?.lat}</td>
-            <td>{record.coordinates?.lon}</td>
-            <td>
-              {editingRecord === record._id ? (
-                <>
-                  <button onClick={() => saveEdit(record._id)}>Save</button>
-                  <button onClick={() => setEditingRecord(null)}>
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => startEdit(record)}>Edit</button>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </>
+ {tab === "read" && (
+  <ReadTab
+    tab={tab}
+    weatherRecords={weatherRecords}
+    fetchWeatherRecords={fetchWeatherRecords}
+    setTab={setTab}
+  />
+)}
+{tab === "update" && (
+  <UpdateTab
+    weatherRecords={weatherRecords}
+    fetchWeatherRecords={fetchWeatherRecords}
+  />
 )}
 {tab === "delete" && (
-  <div>
-    <h2>Delete Weather Records</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th>Location</th>
-          <th>Date</th>
-          <th>Temperature (°C)</th>
-          <th>Latitude</th>
-          <th>Longitude</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {weatherRecords.map((record) => (
-          <tr key={record._id}>
-            <td>{record.location}</td>
-            <td>{record.date}</td>
-            <td>{record.temperature}</td>
-            <td>{record.coordinates?.lat}</td>
-            <td>{record.coordinates?.lon}</td>
-            <td>{<button onClick={() => handleDelete(record._id)}>🗑️ Delete</button>}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    {/* {weatherRecords.length === 0 ? (
-      <p>No records found.</p>
-    ) : (
-      <table>
-        <thead>
-          <tr>
-            <th>Location</th>
-            <th>Date</th>
-            <th>Temperature (°C)</th>
-            <th>Latitude</th>
-            <th>Longitude</th>
-            <th>Action</th> {/* for delete */}
-          {/* </tr>
-        </thead>
-        <tbody>
-          {weatherRecords.map((record) => (
-            <tr key={record._id}>
-              <td>{record.location}</td>
-              <td>{record.date}</td>
-              <td>{record.temperature}</td>
-              <td>{record.coordinates?.lat}</td>
-              <td>{record.coordinates?.lon}</td>
-              <td>
-                <button onClick={() => handleDelete(record._id)}>🗑️ Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table> */}
-    {/* )} */}
-  </div>
+  <DeleteTab
+    weatherRecords={weatherRecords}
+    fetchWeatherRecords={fetchWeatherRecords}
+  />
 )}
-{tab === "integrations" && (
-  <div className="integration-content">
-    {city2.trim() === "" ? (
-      <p>Please enter a value in the Create tab to view integrations.</p>
-    ) : (
-      <>
-        {videoId ? (
-          <iframe
-            title="YouTube Video"
-            width="400"
-            height="240"
-            src={`https://www.youtube.com/embed/${videoId}`}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <p>No video found for {city2}</p>
-        )}
 
-        {mapURL && (
-          <iframe
-            title="Google Map"
-            src={mapURL}
-            width="400"
-            height="240"
-            style={{ marginTop: "1rem" }}
-            loading="lazy"
-          />
-        )}
-      </>
-    )}
-  </div>
+{tab === "integrations" && (
+  <IntegrationTab city2={city2} />
 )}
 {tab === "export" && (
-  <div className="export-tab">
-    <h3>Export Weather Data</h3>
-    <button onClick={handleExportJSON}>Export as JSON</button>
-    <button onClick={handleExportCSV}>Export as CSV</button>
-    {/* <button onClick={handleExportPDF}>Export as PDF</button> */}
-    {/* <button onClick={handleExportMarkdown}>Export as Markdown</button> */}
-  </div>
+  <ExportTab weatherRecords={weatherRecords} />
 )}
 
 
