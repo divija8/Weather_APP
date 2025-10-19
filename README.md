@@ -127,4 +127,3 @@ Ensure MongoDB is reachable before launching the backend.
 
 All POST requests require `location`, `startDate`, and `endDate`. The server geocodes the location, calls the Open-Meteo archive API, stores the results day-by-day, and returns the normalized payload to the frontend.
 
-Built with ❤️ for the PM Accelerator AI Engineer bootcamp requirements.
