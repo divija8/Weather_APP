@@ -127,18 +127,4 @@ Ensure MongoDB is reachable before launching the backend.
 
 All POST requests require `location`, `startDate`, and `endDate`. The server geocodes the location, calls the Open-Meteo archive API, stores the results day-by-day, and returns the normalized payload to the frontend.
 
-## 🧪 Testing
-
-Automated tests are not yet configured. Suggested next steps:
-- Add component tests with React Testing Library.
-- Mock Open-Meteo requests for backend unit tests using Jest.
-- Add integration smoke tests that cover the CRUD cycle.
-
-## 🛠 Troubleshooting
-
-- **Backend `.env` accidentally committed:** run `git rm --cached backend/.env`, commit the removal, and rely on `.env.example`.
-- **Mongo connection fails:** confirm `MONGO_URI` is valid and IP whitelisting is configured for Atlas.
-- **Integrations tab shows “No video found”:** verify the YouTube API key and quota; the request uses `REACT_APP_YOUTUBE_API_KEY`.
-- **Forecast never loads:** the five-day forecast only fetches after the checkbox is enabled; this is expected to prevent unnecessary calls.
-
 Built with ❤️ for the PM Accelerator AI Engineer bootcamp requirements.
