@@ -1,6 +1,6 @@
 # 🌤 Weather App &mdash; PM Accelerator Tech Assessments 1 & 2
 
-Full-stack weather experience built with a **React** frontend and a **Node.js/Express** backend backed by **MongoDB**. The app demonstrates the PM Accelerator requirements: real-time weather lookup, CRUD persistence for historical queries, third-party integrations, and export utilities.
+Full-stack weather experience built with a **React** frontend and a **Node.js/Express** backend backed by **MongoDB**. The app demonstrates the PM Accelerator requirements: real-time weather lookup, CRUD persistence for historical queries, third-party integrations, and export utilities. (Link: https://weatherly-md.netlify.app/)
 
 ## 🔍 Overview
 
