@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 // import jsPDF from "jspdf";
-import "jspdf-autotable";
+// import "jspdf-autotable";
 import "./App.css";
 import WeatherCard from "./components/WeatherCard";
 import CreateTab from "./components/tabs/CreateTab";
@@ -22,7 +22,7 @@ function App() {
   const [showInfo, setShowInfo] = useState(false);
   const [tab, setTab] = useState("create");
   const [weatherRecords, setWeatherRecords] = useState([]);
-
+  const API_BASE = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000/api/weather";
   // task-2 fields
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -171,7 +171,7 @@ function App() {
         endDate,
       };
 
-      const response = await axios.post('http://localhost:5001/api/weather', data, {
+      const response = await axios.post(`${API_BASE}/api/weather`, data, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -234,7 +234,7 @@ useEffect(() => {
   const fetchDataIfMissing = async () => {
     if (tab === "export" && (!weatherRecords || weatherRecords.length === 0)) {
       try {
-        const response = await fetch("/api/weather");
+        const response = await fetch(`${API_BASE}/api/weather`);
         if (!response.ok) throw new Error("Failed to fetch weather data");
         const data = await response.json();
         setWeatherRecords(data);
@@ -249,7 +249,7 @@ useEffect(() => {
 
 const fetchWeatherData = async () => {
   try {
-    const res = await fetch("http://localhost:5001/api/weather");
+    const res = await fetch(`${API_BASE}/api/weather`);
     const data = await res.json();
     if (res.ok) {
       setWeatherRecords(data);
@@ -263,7 +263,7 @@ const fetchWeatherData = async () => {
 };
 const fetchWeatherRecords = async () => {
   try {
-    const response = await fetch("/api/weather");
+    const response = await fetch(`${API_BASE}/api/weather`);
     const data = await response.json();
     setWeatherRecords(data);
   } catch (error) {
