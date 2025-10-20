@@ -27,7 +27,7 @@ function App() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [savedWeather, setSavedWeather] = useState(null);
- 
+
   const codeMap = {
     0: "Clear sky",
     1: "Mainly clear",
@@ -153,7 +153,7 @@ function App() {
 
   const handleSaveWeather = async () => {
     if (!city2 || !startDate || !endDate) {
-        return alert("Please fill all fields: Location, Start Date, and End Date.");
+      return alert("Please fill all fields: Location, Start Date, and End Date.");
     }
 
     if (new Date(startDate) > new Date(endDate)) {
@@ -230,48 +230,48 @@ function App() {
     );
   };
 
-useEffect(() => {
-  const fetchDataIfMissing = async () => {
-    if (tab === "export" && (!weatherRecords || weatherRecords.length === 0)) {
-      try {
-        const response = await fetch(`${API_BASE}/api/weather`);
-        if (!response.ok) throw new Error("Failed to fetch weather data");
-        const data = await response.json();
-        setWeatherRecords(data);
-      } catch (error) {
-        console.error("Error fetching weather data:", error);
+  useEffect(() => {
+    const fetchDataIfMissing = async () => {
+      if (tab === "export" && (!weatherRecords || weatherRecords.length === 0)) {
+        try {
+          const response = await fetch(`${API_BASE}/api/weather`);
+          if (!response.ok) throw new Error("Failed to fetch weather data");
+          const data = await response.json();
+          setWeatherRecords(data);
+        } catch (error) {
+          console.error("Error fetching weather data:", error);
+        }
       }
+    };
+
+    fetchDataIfMissing();
+  }, [tab, weatherRecords, API_BASE]);
+
+  const fetchWeatherData = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/weather`);
+      const data = await res.json();
+      if (res.ok) {
+        setWeatherRecords(data);
+      } else {
+        alert("Error fetching data: " + data.message);
+      }
+    } catch (err) {
+      alert("Network error while fetching weather data");
+      console.error(err);
+    }
+  };
+  const fetchWeatherRecords = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/weather`);
+      const data = await response.json();
+      setWeatherRecords(data);
+    } catch (error) {
+      console.error("Failed to fetch weather records:", error);
     }
   };
 
-  fetchDataIfMissing();
-}, [tab, weatherRecords]);
-
-const fetchWeatherData = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/api/weather`);
-    const data = await res.json();
-    if (res.ok) {
-      setWeatherRecords(data);
-    } else {
-      alert("Error fetching data: " + data.message);
-    }
-  } catch (err) {
-    alert("Network error while fetching weather data");
-    console.error(err);
-  }
-};
-const fetchWeatherRecords = async () => {
-  try {
-    const response = await fetch(`${API_BASE}/api/weather`);
-    const data = await response.json();
-    setWeatherRecords(data);
-  } catch (error) {
-    console.error("Failed to fetch weather records:", error);
-  }
-};
-
-return (
+  return (
     <div className="app-container">
       <h1>🌦 Weather App</h1>
 
@@ -321,63 +321,63 @@ return (
       )}
 
       <section className="crud-section">
-  <h2>Weather Data Management</h2>
-  <div className="tabs">
-    <button onClick={() => setTab("create")} className={tab === "create" ? "active-tab" : ""}>CREATE</button>
-    <button onClick={() => { setTab("read"); fetchWeatherData(); }} className={tab === "read" ? "active-tab" : ""}>READ</button>
-    <button onClick={() => setTab("update")} className={tab === "update" ? "active-tab" : ""}>UPDATE</button>
-    <button onClick={() => {setTab("delete");fetchWeatherData(); }}className={tab === "delete" ? "active-tab" : ""}>DELETE</button>
-    {/* <button onClick={() => setTab("integrations")} className={tab === "integrations" ? "active-tab" : ""}>INTEGRATIONS</button> */}
-    <button onClick={() => setTab("integrations")} className={tab === "integrations" ? "active-tab" : ""}>INTEGRATIONS</button>
-    <button onClick={() => setTab("export")} className={tab === "export" ? "active-tab" : ""}>EXPORT</button>
-  </div>
+        <h2>Weather Data Management</h2>
+        <div className="tabs">
+          <button onClick={() => setTab("create")} className={tab === "create" ? "active-tab" : ""}>CREATE</button>
+          <button onClick={() => { setTab("read"); fetchWeatherData(); }} className={tab === "read" ? "active-tab" : ""}>READ</button>
+          <button onClick={() => setTab("update")} className={tab === "update" ? "active-tab" : ""}>UPDATE</button>
+          <button onClick={() => { setTab("delete"); fetchWeatherData(); }} className={tab === "delete" ? "active-tab" : ""}>DELETE</button>
+          {/* <button onClick={() => setTab("integrations")} className={tab === "integrations" ? "active-tab" : ""}>INTEGRATIONS</button> */}
+          <button onClick={() => setTab("integrations")} className={tab === "integrations" ? "active-tab" : ""}>INTEGRATIONS</button>
+          <button onClick={() => setTab("export")} className={tab === "export" ? "active-tab" : ""}>EXPORT</button>
+        </div>
 
-  {tab === "create" && (
-  <CreateTab
-    tab={tab}
-    city2={city2}
-    setCity2={setCity2}
-    startDate={startDate}
-    setStartDate={setStartDate}
-    endDate={endDate}
-    setEndDate={setEndDate}
-    handleSaveWeather={handleSaveWeather}
-    savedWeather={savedWeather}
-  />
-)}
+        {tab === "create" && (
+          <CreateTab
+            tab={tab}
+            city2={city2}
+            setCity2={setCity2}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            handleSaveWeather={handleSaveWeather}
+            savedWeather={savedWeather}
+          />
+        )}
 
- {tab === "read" && (
-  <ReadTab
-    tab={tab}
-    weatherRecords={weatherRecords}
-    fetchWeatherRecords={fetchWeatherRecords}
-    setTab={setTab}
-  />
-)}
-{tab === "update" && (
-  <UpdateTab
-    weatherRecords={weatherRecords}
-    fetchWeatherRecords={fetchWeatherRecords}
-  />
-)}
-{tab === "delete" && (
-  <DeleteTab
-    weatherRecords={weatherRecords}
-    fetchWeatherRecords={fetchWeatherRecords}
-  />
-)}
+        {tab === "read" && (
+          <ReadTab
+            tab={tab}
+            weatherRecords={weatherRecords}
+            fetchWeatherRecords={fetchWeatherRecords}
+            setTab={setTab}
+          />
+        )}
+        {tab === "update" && (
+          <UpdateTab
+            weatherRecords={weatherRecords}
+            fetchWeatherRecords={fetchWeatherRecords}
+          />
+        )}
+        {tab === "delete" && (
+          <DeleteTab
+            weatherRecords={weatherRecords}
+            fetchWeatherRecords={fetchWeatherRecords}
+          />
+        )}
 
-{tab === "integrations" && (
-  <IntegrationTab city2={city2} />
-)}
-{tab === "export" && (
-  <ExportTab weatherRecords={weatherRecords} />
-)}
+        {tab === "integrations" && (
+          <IntegrationTab city2={city2} />
+        )}
+        {tab === "export" && (
+          <ExportTab weatherRecords={weatherRecords} />
+        )}
 
 
-</section>
+      </section>
 
-<footer className="footer">
+      <footer className="footer">
         <p>
           Developed by <strong>Divija Morishetty</strong> · PM Accelerator
         </p>
